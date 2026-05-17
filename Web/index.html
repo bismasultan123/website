@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>For You, Zee</title>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Cinzel+Decorative:wght@400;700&family=Great+Vibes&family=Jost:wght@300;400;500&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        :root {
+            --blush: #f2c9cd; --rose: #c9636f; --deep: #8b3a45;
+            --cream: #fdf6f0; --parchment: #f0e6d3;
+            --gold: #c9a84c; --gold-light: #e8d5a3;
+            --ink: #2d1f1f; --soft: #7a5c60;
+        }
+        html { scroll-behavior: smooth; }
+        body { font-family: 'Jost', sans-serif; background: var(--cream); color: var(--ink); overflow-x: hidden; cursor: none; }
+
+        /* CURSOR */
+        #cursor {
+            width: 10px; height: 10px; background: var(--rose); border-radius: 50%;
+            position: fixed; pointer-events: none; z-index: 9999;
+            transform: translate(-50%,-50%); mix-blend-mode: multiply;
+        }
+        #cursor-trail {
+            width: 32px; height: 32px; border: 1px solid rgba(201,99,111,0.35); border-radius: 50%;
+            position: fixed; pointer-events: none; z-index: 9998;
+            transform: translate(-50%,-50%);
+            transition: left 0.1s ease, top 0.1s ease; opacity: 0.45;
+        }
+
+        /* NOISE */
+        body::before {
+            content: ''; position: fixed; inset: 0; z-index: 0; pointer-events: none; opacity: 0.02;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+        }
+        [x-cloak] { display: none !important; }
+
+        /* ════ LOGIN ════ */
+        .login-page {
+            min-height: 100vh; display: flex; align-items: center; justify-content: center;
+            background: #180b0e; position: relative; overflow: hidden;
+        }
+        .login-page::after {
+            content: ''; position: absolute; width: 700px; height: 700px;
+            background: radial-gradient(circle, rgba(201,99,111,0.1) 0%, transparent 68%);
+            top: 50%; left: 50%; transform: translate(-50%,-50%);
+            animation: glowPulse 4.5s ease-in-out infinite; pointer-events: none;
+        }
+        @keyframes glowPulse { 0%,100%{ opacity:0.5; transform:translate(-50%,-50%) scale(1); } 50%{ opacity:1; transform:translate(-50%,-50%) scale(1.18); } }
+
+        .login-bg-petals { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+        .petal {
+            position: absolute; opacity: 0;
+            background: linear-gradient(135deg, var(--blush), var(--rose));
+            animation: petalFall linear infinite;
+        }
+        @keyframes petalFall { 0%{ transform:translateY(-20px) rotate(0deg); opacity:0.55; } 100%{ transform:translateY(110vh) rotate(520deg); opacity:0; } }
+
+        .login-card {
+            position: relative; z-index: 2;
+            background: rgba(255,255,255,0.022);
+            border: 1px solid rgba(242,201,205,0.12);
+            backdrop-filter: blur(26px);
+            padding: 70px 58px 58px; text-align: center; max-width: 400px; width: 90%;
+            box-shadow: 0 52px 100px rgba(0,0,0,0.55), inset 0 0 80px rgba(201,99,111,0.02);
+        }
+        .login-card::before { content: ''; position: absolute; inset: 11px; border: 1px solid rgba(201,168,76,0.1); pointer-events: none; }
+        .login-corner { position: absolute; font-size: 0.55rem; color: rgba(201,168,76,0.22); }
+
+        .login-monogram {
+            font-family: 'Great Vibes', cursive; font-size: 8rem; color: var(--blush); line-height: 1; margin-bottom: 0;
+            text-shadow: 0 0 90px rgba(242,201,205,0.22), 0 0 140px rgba(201,99,111,0.08);
+        }
+        .login-subtitle {
+            font-family: 'Cormorant Garamond', serif; font-style: italic;
+            font-size: 0.76rem; letter-spacing: 0.3em; color: rgba(242,201,205,0.38);
+            margin-bottom: 50px; text-transform: uppercase;
+        }
+        .login-divider { display: flex; align-items: center; gap: 14px; margin-bottom: 22px; }
+        .login-divider::before { content: ''; flex: 1; height: 1px; background: linear-gradient(to right, transparent, rgba(201,168,76,0.28)); }
+        .login-divider::after  { content: ''; flex: 1; height: 1px; background: linear-gradient(to left,  transparent, rgba(201,168,76,0.28)); }
+        .login-divider span { color: var(--gold); font-size: 0.62rem; letter-spacing: 0.32em; text-transform: uppercase; }
+
+        .login-input {
+            width: 100%; background: rgba(255,255,255,0.028);
+            border: 1px solid rgba(242,201,205,0.16); color: var(--cream);
+            font-family: 'Cormorant Garamond', serif; font-size: 1.1rem;
+            letter-spacing: 0.45em; text-align: center; padding: 15px 24px; outline: none;
+            margin-bottom: 13px; transition: border-color 0.3s, background 0.3s;
+        }
+        .login-input::placeholder { color: rgba(242,201,205,0.2); font-style: italic; letter-spacing: 0.2em; }
+        .login-input:focus { border-color: rgba(201,168,76,0.42); background: rgba(255,255,255,0.045); }
+
+        .login-err {
+            opacity: 0; transition: opacity 0.4s; min-height: 1.3em; margin-bottom: 12px;
+            font-family: 'Cormorant Garamond', serif; font-style: italic;
+            color: rgba(242,201,205,0.42); font-size: 0.8rem;
+        }
+        .login-btn {
+            width: 100%; background: transparent;
+            border: 1px solid rgba(201,168,76,0.32); color: var(--gold-light);
+            font-family: 'Cinzel Decorative', serif; font-size: 0.58rem;
+            letter-spacing: 0.3em; text-transform: uppercase;
+            padding: 17px; cursor: none; transition: all 0.4s; position: relative; overflow: hidden;
+        }
+        .login-btn::before { content: ''; position: absolute; inset: 0; background: linear-gradient(135deg, var(--rose), var(--deep)); opacity: 0; transition: opacity 0.4s; }
+        .login-btn:hover::before { opacity: 1; }
+        .login-btn:hover { border-color: transparent; color: white; }
+        .login-btn span { position: relative; z-index: 1; }
+        .login-hint { margin-top: 28px; font-family: 'Cormorant Garamond', serif; font-style: italic; font-size: 0.76rem; color: rgba(242,201,205,0.16); letter-spacing: 0.08em; }
+
+        /* ════ NAV ════ */
+        nav {
+            position: fixed; top: 0; width: 100%; z-index: 100;
+            background: rgba(253,246,240,0.93); backdrop-filter: blur(18px);
+            border-bottom: 1px solid rgba(201,99,111,0.1);
+            padding: 16px 40px; display: flex; align-items: center; justify-content: space-between;
+        }
+        @media (max-width: 600px) { nav { padding: 13px 16px; } }
+        .nav-logo { font-family: 'Great Vibes', cursive; font-size: 2.1rem; color: var(--rose); line-height: 1; }
+        .nav-links { display: flex; gap: 4px; flex-wrap: wrap; }
+        .nav-btn {
+            font-family: 'Cinzel Decorative', serif; font-size: 0.46rem; letter-spacing: 0.16em;
+            text-transform: uppercase; color: var(--soft); padding: 8px 13px;
+            border: 1px solid transparent; background: transparent; cursor: none; transition: all 0.3s;
+        }
+        .nav-btn:hover, .nav-btn.active { color: var(--rose); border-color: rgba(201,99,111,0.18); background: rgba(201,99,111,0.04); }
+
+        /* ════ SHARED ════ */
+        .page-wrap { padding-top: 88px; min-height: 100vh; }
+        .page-header { text-align: center; padding: 54px 24px 34px; }
+        .page-eyebrow { font-family: 'Cinzel Decorative', serif; font-size: 0.48rem; letter-spacing: 0.42em; text-transform: uppercase; color: var(--gold); margin-bottom: 10px; }
+        .page-title { font-family: 'Great Vibes', cursive; font-size: clamp(3.4rem, 8vw, 6.2rem); color: var(--rose); line-height: 1; margin-bottom: 16px; }
+        .ornament { display: flex; align-items: center; justify-content: center; gap: 14px; }
+        .ornament::before { content: ''; display: inline-block; width: 48px; height: 1px; background: linear-gradient(to right, transparent, var(--gold)); }
+        .ornament::after  { content: ''; display: inline-block; width: 48px; height: 1px; background: linear-gradient(to left,  transparent, var(--gold)); }
+        .ornament-text { font-family: 'Cormorant Garamond', serif; font-style: italic; font-size: 0.87rem; color: var(--soft); letter-spacing: 0.04em; }
+
+        /* ════ GALLERY ════ */
+        .gallery-grid {
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 42px; padding: 34px 56px 80px; max-width: 1200px; margin: 0 auto;
+        }
+        @media (max-width: 640px) { .gallery-grid { padding: 18px 16px 60px; gap: 26px; } }
+
+        .gallery-item { opacity: 0; animation: revealUp 0.9s cubic-bezier(0.22,1,0.36,1) forwards; }
+        @keyframes revealUp { from{ opacity:0; transform:translateY(40px) scale(0.96); } to{ opacity:1; transform:translateY(0) scale(1); } }
+
+        .photo-frame {
+            background: white; padding: 12px 12px 48px;
+            box-shadow: 0 8px 32px -5px rgba(45,31,31,0.13), 0 2px 8px rgba(45,31,31,0.05);
+            transition: transform 0.5s cubic-bezier(0.175,0.885,0.32,1.275), box-shadow 0.5s;
+            position: relative; cursor: none;
+        }
+        .photo-frame:hover {
+            transform: rotate(0deg) scale(1.05) translateY(-8px) !important;
+            box-shadow: 0 28px 64px -10px rgba(201,99,111,0.28), 0 4px 12px rgba(45,31,31,0.07);
+            z-index: 10;
+        }
+        .photo-img { width: 100%; aspect-ratio: 4/5; object-fit: cover; display: block; filter: sepia(6%) saturate(88%); transition: filter 0.5s; }
+        .photo-frame:hover .photo-img { filter: sepia(0%) saturate(110%); }
+
+        .photo-hover-hint {
+            position: absolute; inset: 12px 12px 48px 12px;
+            background: rgba(45,31,31,0.38); backdrop-filter: blur(3px);
+            display: flex; align-items: center; justify-content: center;
+            font-family: 'Cinzel Decorative', serif; font-size: 0.52rem; letter-spacing: 0.3em; text-transform: uppercase; color: rgba(253,246,240,0.88);
+            opacity: 0; transition: opacity 0.3s; pointer-events: none;
+        }
+        .photo-frame:hover .photo-hover-hint { opacity: 1; }
+
+        .photo-caption { position: absolute; bottom: 0; left: 0; right: 0; padding: 10px 13px 12px; text-align: center; }
+        .photo-caption h3 { font-family: 'Great Vibes', cursive; font-size: 1.5rem; color: var(--ink); line-height: 1.1; }
+        .photo-caption p  { font-family: 'Cormorant Garamond', serif; font-style: italic; font-size: 0.68rem; color: var(--soft); letter-spacing: 0.06em; margin-top: 2px; }
+
+        .tape { position: absolute; top: -7px; left: 50%; transform: translateX(-50%); width: 54px; height: 15px; background: rgba(240,230,210,0.72); border-left: 1px solid rgba(201,168,76,0.12); border-right: 1px solid rgba(201,168,76,0.12); }
+
+        /* LIGHTBOX */
+        .lightbox-overlay { position: fixed; inset: 0; z-index: 300; background: rgba(18,6,8,0.92); backdrop-filter: blur(20px); display: flex; align-items: center; justify-content: center; padding: 20px; }
+        .lightbox-card { background: white; max-width: 500px; width: 100%; padding: 12px 12px 0; box-shadow: 0 48px 96px rgba(0,0,0,0.6); position: relative; }
+        .lightbox-close { position: absolute; top: -13px; right: -13px; width: 33px; height: 33px; background: var(--rose); border: none; border-radius: 50%; color: white; font-size: 0.68rem; display: flex; align-items: center; justify-content: center; cursor: none; transition: background 0.2s, transform 0.2s; z-index: 10; }
+        .lightbox-close:hover { background: var(--deep); transform: scale(1.1) rotate(90deg); }
+        .lightbox-img { width: 100%; max-height: 72vh; object-fit: contain; display: block; background: #111; }
+        .lightbox-footer { display: flex; align-items: center; justify-content: space-between; padding: 13px 7px 17px; gap: 10px; }
+        .lightbox-title { font-family: 'Great Vibes', cursive; font-size: 1.5rem; color: var(--ink); line-height: 1; }
+        .lightbox-desc  { font-family: 'Cormorant Garamond', serif; font-style: italic; font-size: 0.72rem; color: var(--soft); margin-top: 2px; }
+        .lightbox-dl { display: inline-flex; align-items: center; gap: 5px; padding: 8px 14px; border: 1px solid rgba(201,99,111,0.28); color: var(--rose); font-family: 'Cinzel Decorative', serif; font-size: 0.45rem; letter-spacing: 0.18em; text-transform: uppercase; text-decoration: none; white-space: nowrap; flex-shrink: 0; transition: all 0.3s; }
+        .lightbox-dl:hover { background: var(--rose); color: white; border-color: var(--rose); }
+
+        /* ════ LETTERS ════ */
+        .letters-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 34px; padding: 20px 60px 80px; max-width: 760px; margin: 0 auto; }
+        @media (max-width: 640px) { .letters-grid { padding: 18px; gap: 22px; } }
+
+        .letter-envelope { background: var(--parchment); border: 1px solid rgba(201,168,76,0.26); padding: 44px 30px; text-align: center; cursor: none; transition: all 0.4s; position: relative; box-shadow: 0 4px 22px rgba(45,31,31,0.06); }
+        .letter-envelope::before { content: ''; position: absolute; inset: 7px; border: 1px solid rgba(201,168,76,0.12); pointer-events: none; }
+        .letter-envelope:hover { transform: translateY(-10px); box-shadow: 0 24px 56px rgba(139,58,69,0.14); border-color: rgba(201,168,76,0.48); }
+
+        .envelope-wax { width: 58px; height: 58px; background: linear-gradient(135deg, var(--rose), var(--deep)); border-radius: 50%; margin: 0 auto 20px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; box-shadow: 0 4px 18px rgba(139,58,69,0.3); transition: transform 0.4s; }
+        .letter-envelope:hover .envelope-wax { transform: scale(1.15) rotate(10deg); }
+        .envelope-title { font-family: 'Cormorant Garamond', serif; font-size: 1.48rem; font-style: italic; color: var(--ink); margin-bottom: 8px; }
+        .envelope-hint  { font-family: 'Jost', sans-serif; font-size: 0.66rem; letter-spacing: 0.22em; text-transform: uppercase; color: rgba(139,58,69,0.36); }
+
+        /* Scroll Modal */
+        .letter-overlay { position: fixed; inset: 0; z-index: 200; background: rgba(45,31,31,0.64); backdrop-filter: blur(14px); display: flex; align-items: center; justify-content: center; padding: 24px; }
+        .letter-scroll { max-width: 540px; width: 100%; background: var(--parchment); box-shadow: 0 40px 80px rgba(45,31,31,0.34); position: relative; overflow: hidden; }
+        .scroll-roller { height: 30px; background: linear-gradient(180deg, #ead8a6, #d0b472, #ead8a6); box-shadow: 0 4px 10px rgba(45,31,31,0.12); }
+        .scroll-body { padding: 44px 50px 40px; text-align: center; position: relative; }
+        @media (max-width: 480px) { .scroll-body { padding: 28px 20px; } }
+        .scroll-body::before { content: ''; position: absolute; inset: 34px 16px; border: 1px solid rgba(201,168,76,0.12); pointer-events: none; }
+        .scroll-eyebrow { font-family: 'Cinzel Decorative', serif; font-size: 0.46rem; letter-spacing: 0.36em; text-transform: uppercase; color: rgba(139,58,69,0.36); margin-bottom: 20px; }
+        .scroll-text { font-family: 'Cormorant Garamond', serif; font-size: clamp(1.32rem, 3vw, 1.82rem); font-style: italic; line-height: 1.74; color: var(--ink); }
+        .scroll-sig { margin-top: 26px; font-family: 'Great Vibes', cursive; font-size: 2rem; color: var(--rose); }
+        .scroll-close { margin-top: 18px; font-family: 'Cinzel Decorative', serif; font-size: 0.46rem; letter-spacing: 0.28em; text-transform: uppercase; color: rgba(139,58,69,0.3); background: none; border: none; cursor: none; transition: color 0.3s; display: block; margin-left: auto; margin-right: auto; }
+        .scroll-close:hover { color: var(--rose); }
+
+        /* ════ GIFTS ════ */
+        .gifts-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 26px; max-width: 520px; margin: 0 auto; padding: 20px 24px 80px; }
+        @media (max-width: 460px) { .gifts-grid { grid-template-columns: 1fr; max-width: 300px; } }
+
+        .gift-card { background: var(--cream); border: 1px solid rgba(201,168,76,0.2); padding: 52px 26px 40px; text-align: center; cursor: none; transition: all 0.45s cubic-bezier(0.175,0.885,0.32,1.275); position: relative; overflow: hidden; }
+        .gift-card::after { content: ''; position: absolute; inset: 0; background: linear-gradient(135deg, transparent 55%, rgba(242,201,205,0.07)); pointer-events: none; }
+        .gift-card:hover { transform: translateY(-13px) scale(1.03); border-color: rgba(201,99,111,0.26); box-shadow: 0 28px 64px rgba(139,58,69,0.13); }
+        .gift-icon { font-size: 3.6rem; margin-bottom: 16px; display: block; transition: transform 0.4s; }
+        .gift-card:hover .gift-icon { transform: scale(1.22) rotate(-10deg); }
+        .gift-name { font-family: 'Cormorant Garamond', serif; font-size: 1.2rem; font-weight: 500; color: var(--ink); margin-bottom: 6px; }
+        .gift-sub  { font-family: 'Jost', sans-serif; font-size: 0.63rem; letter-spacing: 0.2em; text-transform: uppercase; color: rgba(139,58,69,0.36); }
+
+        /* Gift Modal */
+        .gift-modal { position: fixed; inset: 0; z-index: 200; background: rgba(45,31,31,0.6); backdrop-filter: blur(15px); display: flex; align-items: center; justify-content: center; padding: 24px; }
+        .gift-modal-card { background: var(--cream); border: 1px solid rgba(201,168,76,0.26); padding: 56px 42px; max-width: 390px; width: 100%; text-align: center; position: relative; box-shadow: 0 40px 80px rgba(45,31,31,0.28); }
+        .gift-modal-card::before { content: ''; position: absolute; inset: 11px; border: 1px solid rgba(201,168,76,0.1); pointer-events: none; }
+        @media (max-width: 480px) { .gift-modal-card { padding: 38px 22px; } }
+        .modal-icon { font-size: 2.8rem; margin-bottom: 13px; }
+        .modal-to   { font-family: 'Great Vibes', cursive; font-size: 2.4rem; color: var(--rose); margin-bottom: 10px; }
+        .modal-text { font-family: 'Cormorant Garamond', serif; font-style: italic; font-size: 1.16rem; line-height: 1.72; color: var(--soft); }
+        .modal-btn  { margin-top: 28px; width: 100%; background: transparent; border: 1px solid rgba(201,99,111,0.26); color: var(--rose); font-family: 'Cinzel Decorative', serif; font-size: 0.5rem; letter-spacing: 0.24em; text-transform: uppercase; padding: 14px; cursor: none; transition: all 0.3s; }
+        .modal-btn:hover { background: var(--rose); color: white; border-color: var(--rose); }
+
+        /* ════ VIDEO ════ */
+        .video-section { display: flex; align-items: center; justify-content: center; padding: 30px 24px 76px; }
+        @keyframes floatBob { 0%,100%{ transform:translateY(0) rotate(-3deg); } 50%{ transform:translateY(-13px) rotate(3deg); } }
+
+        /* ════ TRANSITIONS ════ */
+        .fade-in { animation: fadeInPage 0.65s ease forwards; }
+        @keyframes fadeInPage { from{ opacity:0; transform:translateY(14px); } to{ opacity:1; transform:translateY(0); } }
+
+        /* SCROLLBAR */
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-track { background: var(--cream); }
+        ::-webkit-scrollbar-thumb { background: var(--blush); border-radius: 2px; }
+
+        @media (max-width: 500px) { .nav-btn { font-size: 0.4rem; padding: 7px 9px; } .nav-logo { font-size: 1.65rem; } }
+    </style>
+</head>
+<body x-data="{
+    page: 'login',
+    password: '',
+    correctPass: 'love',
+    showLetter: false,
+    letterTitle: '',
+    letterContent: '',
+    giftOpened: false,
+    giftIcon: '',
+    giftMessage: '',
+    lightbox: false,
+    lightboxItem: null,
+    memories: [
+        { t: 'Best Picture',   d: 'The day my heart found you.',          i: 'images/image.jpeg',  url: 'images/image.jpeg'  },
+        { t: 'That Smile',     d: 'I love your smile.',                   i: 'images/smilee.jpeg', url: 'images/smilee.jpeg' },
+        { t: 'Dreamer',        d: 'I love the way you see the world.',    i: 'images/dream.jpeg',  url: 'images/dream.jpeg'  },
+        { t: 'Late Nights',    d: 'Conversations I never want to end.',   i: 'images/hands.jpeg',  url: 'images/hands.jpeg'  },
+        { t: 'Pure Joy',       d: 'Your laugh is my favourite song.',     i: 'images/walk.jpeg',   url: 'images/walk.jpeg'   },
+        { t: 'Forever Kind',   d: 'The most beautiful soul.',             i: 'images/best.jpeg',      url: 'images/best.jpeg'      },
+        { t: 'Golden Hour',    d: 'You glow like the evening sun.',       i: 'images/history.jpeg', url: 'images/history.jpeg' },
+        { t: 'Quiet Moments',  d: 'Still, peaceful, and so you.',        i: 'images/cute.jpeg',  url: 'images/cute.jpeg'  }
+    ]
+}" x-init="
+    document.addEventListener('mousemove', e => {
+        const c = document.getElementById('cursor');
+        const t = document.getElementById('cursor-trail');
+        if(c){ c.style.left = e.clientX + 'px'; c.style.top = e.clientY + 'px'; }
+        if(t){ t.style.left = e.clientX + 'px'; t.style.top = e.clientY + 'px'; }
+    });
+">
+<div id="cursor"></div>
+<div id="cursor-trail"></div>
+
+<!-- ══════════ LOGIN ══════════ -->
+<template x-if="page === 'login'">
+    <div class="login-page">
+        <div class="login-bg-petals" id="petals-wrap"></div>
+        <div class="login-card">
+            <span class="login-corner" style="top:17px;left:20px;">✦</span>
+            <span class="login-corner" style="bottom:19px;right:21px;">✦</span>
+            <div class="login-monogram">Zee</div>
+            <div class="login-subtitle">Something made only for you</div>
+            <div class="login-divider"><span>Enter</span></div>
+            <input
+                type="password" class="login-input"
+                placeholder="the magic word…"
+                x-model="password"
+                @keyup.enter="password.toLowerCase() === correctPass ? page = 'home' : ($el.parentElement.querySelector('.login-err').style.opacity = 1)"
+            >
+            <p class="login-err">Not quite, my love. Try again. 🌸</p>
+            <button class="login-btn"
+                @click="password.toLowerCase() === correctPass ? page = 'home' : ($el.parentElement.querySelector('.login-err').style.opacity = 1)">
+                <span>Open Your Surprise</span>
+            </button>
+            <p class="login-hint">"For the one who has my whole heart."</p>
+        </div>
+    </div>
+</template>
+
+<!-- ══════════ NAV ══════════ -->
+<nav x-show="page !== 'login'" x-cloak>
+    <div class="nav-logo">For You</div>
+    <div class="nav-links">
+        <button class="nav-btn" :class="page==='home'?'active':''"    @click="page='home'">Gallery</button>
+        <button class="nav-btn" :class="page==='letters'?'active':''" @click="page='letters'">Letters</button>
+        <button class="nav-btn" :class="page==='gifts'?'active':''"   @click="page='gifts'">Gifts</button>
+        <button class="nav-btn" :class="page==='video'?'active':''"   @click="page='video'">Video</button>
+    </div>
+</nav>
+
+<!-- ══════════ GALLERY ══════════ -->
+<template x-if="page === 'home'">
+    <div class="page-wrap fade-in" x-cloak>
+        <div class="page-header">
+            <p class="page-eyebrow">A Collection of Moments</p>
+            <h1 class="page-title">Captured in Time</h1>
+            <div class="ornament"><span class="ornament-text">Every moment with you is a treasure</span></div>
+        </div>
+        <div class="gallery-grid">
+            <template x-for="(item, index) in memories" :key="index">
+                <div class="gallery-item" :style="`animation-delay:${index * 0.1}s`">
+                    <div class="photo-frame"
+                         :style="`transform: rotate(${[-2, 1.5, -1, 2, -1.5, 1, -2, 1.5][index % 8]}deg)`"
+                         @click="lightbox=true; lightboxItem=item">
+                        <div class="tape"></div>
+                        <img :src="item.i" class="photo-img" :alt="item.t" loading="lazy">
+                        <div class="photo-hover-hint">&#10022; View</div>
+                        <div class="photo-caption">
+                            <h3 x-text="item.t"></h3>
+                            <p x-text="item.d"></p>
+                        </div>
+                    </div>
+                </div>
+            </template>
+        </div>
+    </div>
+</template>
+
+<!-- Lightbox -->
+<div x-show="lightbox" x-cloak class="lightbox-overlay"
+     x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
+     x-transition:leave="transition ease-in duration-200" x-transition:leave-end="opacity-0"
+     @click.self="lightbox=false" @keydown.escape.window="lightbox=false">
+    <div class="lightbox-card"
+         x-transition:enter="transition ease-out duration-400" x-transition:enter-start="opacity-0 scale-90" x-transition:enter-end="opacity-100 scale-100">
+        <button class="lightbox-close" @click="lightbox=false">&#x2715;</button>
+        <img :src="lightboxItem && lightboxItem.i" :alt="lightboxItem && lightboxItem.t" class="lightbox-img">
+        <div class="lightbox-footer">
+            <div>
+                <div class="lightbox-title" x-text="lightboxItem && lightboxItem.t"></div>
+                <div class="lightbox-desc"  x-text="lightboxItem && lightboxItem.d"></div>
+            </div>
+            <a :href="lightboxItem && lightboxItem.url" :download="lightboxItem && lightboxItem.t" class="lightbox-dl">
+                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                    <polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+                </svg>
+                Save
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- ══════════ LETTERS (2) ══════════ -->
+<template x-if="page === 'letters'">
+    <div class="page-wrap fade-in" x-cloak>
+        <div class="page-header">
+            <p class="page-eyebrow">Words from the Heart</p>
+            <h1 class="page-title">Dear Zee</h1>
+            <div class="ornament"><span class="ornament-text">Open a scroll to read what I cannot say aloud</span></div>
+        </div>
+        <div class="letters-grid">
+            <div class="letter-envelope"
+                @click="showLetter=true; letterTitle='A Prayer for You'; letterContent='You are such a kind and beautiful soul. I hold so many prayers for you — may you always be protected, guided, and wrapped in peace wherever you go. 🕊️'">
+                <div class="envelope-wax">🕊️</div>
+                <div class="envelope-title">My Prayer for You</div>
+                <div class="envelope-hint">Break the seal to read</div>
+            </div>
+            <div class="letter-envelope"
+                @click="showLetter=true; letterTitle='A Secret Note'; letterContent='In every message I send there are a thousand silent prayers. I pray for your happiness, your success, and that gorgeous smile to never disappear. You deserve the entire world, Zee. ✨❤️'">
+                <div class="envelope-wax">✉️</div>
+                <div class="envelope-title">A Secret Note</div>
+                <div class="envelope-hint">Break the seal to read</div>
+            </div>
+        </div>
+    </div>
+</template>
+
+<!-- Letter Modal -->
+<div x-show="showLetter" x-cloak class="letter-overlay"
+     x-transition:enter="transition ease-out duration-400" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
+     x-transition:leave="transition ease-in duration-200" x-transition:leave-end="opacity-0"
+     @click.self="showLetter=false">
+    <div class="letter-scroll"
+         x-transition:enter="transition ease-out duration-500" x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100">
+        <div class="scroll-roller"></div>
+        <div class="scroll-body">
+            <p class="scroll-eyebrow" x-text="letterTitle"></p>
+            <p class="scroll-text"    x-text="letterContent"></p>
+            <p class="scroll-sig">Always yours</p>
+            <button class="scroll-close" @click="showLetter=false">— Close Scroll —</button>
+        </div>
+        <div class="scroll-roller"></div>
+    </div>
+</div>
+
+<!-- ══════════ GIFTS (2) ══════════ -->
+<template x-if="page === 'gifts'">
+    <div class="page-wrap fade-in" x-cloak>
+        <div class="page-header">
+            <p class="page-eyebrow">Little Blessings</p>
+            <h1 class="page-title">For My Favourite Person</h1>
+            <div class="ornament"><span class="ornament-text">Select a gift to unwrap what's inside</span></div>
+        </div>
+        <div class="gifts-grid">
+            <div class="gift-card"
+                @click="giftOpened=true; giftIcon='🕊️'; giftMessage='A lot of prayers travel with you always. May you be protected, guided, and surrounded by ease in everything you do.'">
+                <span class="gift-icon">💌</span>
+                <div class="gift-name">Box of Prayers</div>
+                <div class="gift-sub">Open with love</div>
+            </div>
+            <div class="gift-card"
+                @click="giftOpened=true; giftIcon='☀️'; giftMessage='I want you to always be happy. Your smile is quite literally the brightest thing in my entire world.'">
+                <span class="gift-icon">💝</span>
+                <div class="gift-name">Box of Sunshine</div>
+                <div class="gift-sub">Open with love</div>
+            </div>
+        </div>
+    </div>
+</template>
+
+<!-- Gift Modal -->
+<div x-show="giftOpened" x-cloak class="gift-modal"
+     x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
+     @click.self="giftOpened=false">
+    <div class="gift-modal-card"
+         x-transition:enter="transition ease-out duration-400" x-transition:enter-start="opacity-0 scale-90" x-transition:enter-end="opacity-100 scale-100">
+        <div class="modal-icon" x-text="giftIcon"></div>
+        <div class="modal-to">Zee,</div>
+        <p class="modal-text" x-text="giftMessage"></p>
+        <button class="modal-btn" @click="giftOpened=false">Ameen ❤️</button>
+    </div>
+</div>
+
+<!-- ══════════ VIDEO ══════════ -->
+<template x-if="page === 'video'">
+    <div class="page-wrap fade-in" x-cloak>
+        <div class="page-header">
+            <p class="page-eyebrow">On Repeat</p>
+            <h1 class="page-title">Moments of You</h1>
+            <div class="ornament"><span class="ornament-text">Because I could watch this forever</span></div>
+        </div>
+
+        <div class="video-section">
+            <div style="position:relative; display:inline-block;">
+                <!-- Glow -->
+                <div style="position:absolute;inset:-50px;background:radial-gradient(circle,rgba(201,99,111,0.16) 0%,transparent 68%);pointer-events:none;z-index:0;"></div>
+                <!-- Tape -->
+                <div style="position:absolute;top:-11px;left:50%;transform:translateX(-50%) rotate(-2deg);width:76px;height:20px;background:rgba(240,230,210,0.78);border-left:1px solid rgba(201,168,76,0.18);border-right:1px solid rgba(201,168,76,0.18);z-index:10;"></div>
+                <!-- Phone -->
+                <div style="position:relative;z-index:1;background:#0a0a0a;border-radius:44px;border:10px solid #1a1a1a;box-shadow:0 32px 96px rgba(201,99,111,0.36),0 0 0 1px rgba(255,255,255,0.04);width:300px;transform:rotate(-1deg);transition:transform 0.5s ease;"
+                     onmouseenter="this.style.transform='rotate(0deg)'" onmouseleave="this.style.transform='rotate(-1deg)'">
+                    <!-- Dynamic Island -->
+                    <div style="position:absolute;top:10px;left:50%;transform:translateX(-50%);width:88px;height:26px;background:#0a0a0a;border-radius:20px;z-index:20;">
+                        <div style="position:absolute;right:12px;top:50%;transform:translateY(-50%);width:7px;height:7px;background:#1a1a1a;border-radius:50%;"></div>
+                    </div>
+                    <!-- Top bar -->
+                    <div style="height:36px;background:#000;border-radius:34px 34px 0 0;"></div>
+                    <!-- VIDEO -->
+                    <video controls playsinline preload="metadata"
+                        style="width:100%;height:556px;object-fit:cover;display:block;background:#000;">
+                        <source src="images/vv.webm" type="video/webm">
+                    </video>
+                    <!-- Bottom bar -->
+                    <div style="height:26px;background:#000;border-radius:0 0 34px 34px;display:flex;align-items:center;justify-content:center;">
+                        <div style="width:96px;height:4px;background:#252525;border-radius:2px;"></div>
+                    </div>
+                    <!-- Buttons -->
+                    <div style="position:absolute;left:-12px;top:86px; width:4px;height:34px;background:#1c1c1c;border-radius:2px 0 0 2px;"></div>
+                    <div style="position:absolute;left:-12px;top:132px;width:4px;height:50px;background:#1c1c1c;border-radius:2px 0 0 2px;"></div>
+                    <div style="position:absolute;left:-12px;top:195px;width:4px;height:50px;background:#1c1c1c;border-radius:2px 0 0 2px;"></div>
+                    <div style="position:absolute;right:-12px;top:138px;width:4px;height:60px;background:#1c1c1c;border-radius:0 2px 2px 0;"></div>
+                </div>
+                <!-- Emojis -->
+                <div style="position:absolute;right:-38px;top:36px; font-size:1.9rem;animation:floatBob 3s ease-in-out infinite;pointer-events:none;user-select:none;">💖</div>
+                <div style="position:absolute;left:-38px; top:96px; font-size:1.5rem;animation:floatBob 4s ease-in-out infinite reverse;pointer-events:none;user-select:none;">✨</div>
+                <div style="position:absolute;right:-30px;bottom:76px;font-size:1.3rem;animation:floatBob 3.5s ease-in-out infinite 1s;pointer-events:none;user-select:none;">🌸</div>
+            </div>
+        </div>
+
+        <div style="text-align:center;padding-bottom:64px;margin-top:4px;">
+            <p style="font-family:'Great Vibes',cursive;font-size:2rem;color:var(--rose);">"Every frame of you is my favourite."</p>
+            <div style="margin-top:8px;display:flex;align-items:center;justify-content:center;gap:12px;font-family:'Cinzel Decorative',serif;font-size:0.44rem;letter-spacing:0.36em;text-transform:uppercase;color:rgba(201,168,76,0.45);">
+                <span>✦</span><span>on repeat</span><span>✦</span>
+            </div>
+        </div>
+    </div>
+</template>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const wrap = document.getElementById('petals-wrap');
+    if (!wrap) return;
+    for (let i = 0; i < 22; i++) {
+        const p = document.createElement('div');
+        p.className = 'petal';
+        const size = 4 + Math.random() * 5;
+        p.style.cssText = `
+            left:${Math.random()*100}%;
+            width:${size}px; height:${size * 2.1}px;
+            animation-duration:${7 + Math.random()*10}s;
+            animation-delay:${Math.random()*14}s;
+            border-radius:${Math.random()>0.5?'50% 50% 50% 0':'50% 0 50% 50%'};
+        `;
+        wrap.appendChild(p);
+    }
+});
+</script>
+</body>
+</html>
